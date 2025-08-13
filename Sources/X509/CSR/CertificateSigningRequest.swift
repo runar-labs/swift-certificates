@@ -133,7 +133,7 @@ public struct CertificateSigningRequest {
         )
         let infoBytes = try DER.Serializer.serialized(element: info)
         let algId = AlgorithmIdentifier(signatureAlgorithm)
-        let sigBitString = try ASN1BitString(derEncoded: signatureDER)
+        let sigBitString = ASN1BitString(bytes: signatureDER[...])
         let signature = try Certificate.Signature(signatureAlgorithm: signatureAlgorithm, signatureBytes: sigBitString)
         try self.init(
             info: info,
