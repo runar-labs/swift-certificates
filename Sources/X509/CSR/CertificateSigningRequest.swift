@@ -232,6 +232,32 @@ public struct CertificateSigningRequest {
 }
 
 @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+public enum CertificateSigningRequestHelper {
+    /// Produce DER-encoded CertificationRequestInfo bytes to be signed externally (e.g., with Secure Enclave).
+    @inlinable
+    public static func infoBytes(
+        version: CertificateSigningRequest.Version,
+        subject: DistinguishedName,
+        publicKey: Certificate.PublicKey,
+        attributes: CertificateSigningRequest.Attributes
+    ) throws -> [UInt8] {
+        let info = CertificationRequestInfo(
+            version: version,
+            subject: subject,
+            publicKey: publicKey,
+            attributes: attributes
+        )
+        return try DER.Serializer.serialized(element: info)
+    }
+
+    /// Serialize a CSR to DER-encoded bytes for external consumers.
+    @inlinable
+    public static func derEncoded(_ csr: CertificateSigningRequest) throws -> [UInt8] {
+        return try DER.Serializer.serialized(element: csr)
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
 extension CertificateSigningRequest: Hashable {}
 
 @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
