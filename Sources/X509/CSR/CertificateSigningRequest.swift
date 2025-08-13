@@ -114,6 +114,37 @@ public struct CertificateSigningRequest {
         self.signatureBytes = try DER.Serializer.serialized(element: ASN1BitString(self.signature))[...]
     }
 
+    // Public initializer to allow externally-signed CSRs (e.g., Secure Enclave via SecKey)
+    // signatureDER must be a valid ECDSA (X9.62 DER) or appropriate for the provided signatureAlgorithm.
+    @inlinable
+    public init(
+        version: Version,
+        subject: DistinguishedName,
+        publicKey: Certificate.PublicKey,
+        attributes: Attributes,
+        signatureAlgorithm: Certificate.SignatureAlgorithm,
+        signatureDER: [UInt8]
+    ) throws {
+        let info = CertificationRequestInfo(
+            version: version,
+            subject: subject,
+            publicKey: publicKey,
+            attributes: attributes
+        )
+        let infoBytes = try DER.Serializer.serialized(element: info)
+        let algId = AlgorithmIdentifier(signatureAlgorithm)
+        let sigBitString = try ASN1BitString(derEncoded: signatureDER)
+        let signature = try Certificate.Signature(signatureAlgorithm: signatureAlgorithm, signatureBytes: sigBitString)
+        try self.init(
+            info: info,
+            signatureAlgorithm: algId,
+            signature: sigBitString,
+            infoBytes: infoBytes[...],
+            signatureAlgorithmBytes: try DER.Serializer.serialized(element: algId)[...],
+            signatureBytes: try DER.Serializer.serialized(element: ASN1BitString(signature))[...]
+        )
+    }
+
     /// Construct a CSR for a specific private key.
     ///
     /// This API can be used to construct a certificate signing request that can be passed to a certificate
