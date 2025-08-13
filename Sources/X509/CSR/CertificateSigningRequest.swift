@@ -141,7 +141,7 @@ public struct CertificateSigningRequest {
             signature: sigBitString,
             infoBytes: infoBytes[...],
             signatureAlgorithmBytes: try DER.Serializer.serialized(element: algId)[...],
-            signatureBytes: try DER.Serializer.serialized(element: ASN1BitString(signature))[...]
+            signatureBytes: try DER.Serializer.serialized(element: sigBitString)[...]
         )
     }
 
