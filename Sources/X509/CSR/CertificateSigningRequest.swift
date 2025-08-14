@@ -114,6 +114,37 @@ public struct CertificateSigningRequest {
         self.signatureBytes = try DER.Serializer.serialized(element: ASN1BitString(self.signature))[...]
     }
 
+    // Public initializer to allow externally-signed CSRs (e.g., Secure Enclave via SecKey)
+    // signatureDER must be a valid ECDSA (X9.62 DER) or appropriate for the provided signatureAlgorithm.
+    @inlinable
+    public init(
+        version: Version,
+        subject: DistinguishedName,
+        publicKey: Certificate.PublicKey,
+        attributes: Attributes,
+        signatureAlgorithm: Certificate.SignatureAlgorithm,
+        signatureDER: [UInt8]
+    ) throws {
+        let info = CertificationRequestInfo(
+            version: version,
+            subject: subject,
+            publicKey: publicKey,
+            attributes: attributes
+        )
+        let infoBytes = try DER.Serializer.serialized(element: info)
+        let algId = AlgorithmIdentifier(signatureAlgorithm)
+        let sigBitString = ASN1BitString(bytes: signatureDER[...])
+        let signature = try Certificate.Signature(signatureAlgorithm: signatureAlgorithm, signatureBytes: sigBitString)
+        try self.init(
+            info: info,
+            signatureAlgorithm: algId,
+            signature: sigBitString,
+            infoBytes: infoBytes[...],
+            signatureAlgorithmBytes: try DER.Serializer.serialized(element: algId)[...],
+            signatureBytes: try DER.Serializer.serialized(element: sigBitString)[...]
+        )
+    }
+
     /// Construct a CSR for a specific private key.
     ///
     /// This API can be used to construct a certificate signing request that can be passed to a certificate
@@ -197,6 +228,32 @@ public struct CertificateSigningRequest {
         self.infoBytes = infoBytes
         self.signatureAlgorithmBytes = signatureAlgorithmBytes
         self.signatureBytes = signatureBytes
+    }
+}
+
+@available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
+public enum CertificateSigningRequestHelper {
+    /// Produce DER-encoded CertificationRequestInfo bytes to be signed externally (e.g., with Secure Enclave).
+    @inlinable
+    public static func infoBytes(
+        version: CertificateSigningRequest.Version,
+        subject: DistinguishedName,
+        publicKey: Certificate.PublicKey,
+        attributes: CertificateSigningRequest.Attributes
+    ) throws -> [UInt8] {
+        let info = CertificationRequestInfo(
+            version: version,
+            subject: subject,
+            publicKey: publicKey,
+            attributes: attributes
+        )
+        return try DER.Serializer.serialized(element: info)
+    }
+
+    /// Serialize a CSR to DER-encoded bytes for external consumers.
+    @inlinable
+    public static func derEncoded(_ csr: CertificateSigningRequest) throws -> [UInt8] {
+        return try DER.Serializer.serialized(element: csr)
     }
 }
 
